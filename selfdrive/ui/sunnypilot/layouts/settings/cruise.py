@@ -87,9 +87,16 @@ class CruiseLayout(Widget):
       description=tr("Enable toggle to allow the model to determine when to use sunnypilot ACC or sunnypilot End to End Longitudinal."),
       param="DynamicExperimentalControl")
 
+    self.smooth_stops_toggle = toggle_item_sp(
+      title=tr("Smooth Stops"),
+      description=tr("Ease off braking in the final moments of a stop for a smoother, more human stop. " +
+                     "Slightly increases stopping distance. Full braking remains available when a lead vehicle is close."),
+      param="SmoothStops")
+
     items = [
       self.icbm_toggle,
       self.dec_toggle,
+      self.smooth_stops_toggle,
       self.scc_v_toggle,
       self.scc_m_toggle,
       self.custom_acc_toggle,
@@ -145,6 +152,7 @@ class CruiseLayout(Widget):
       if has_long or has_icbm:
         self.custom_acc_toggle.action_item.set_enabled(((has_long and not ui_state.CP.pcmCruise) or has_icbm) and ui_state.is_offroad())
         self.dec_toggle.action_item.set_enabled(has_long)
+        self.smooth_stops_toggle.action_item.set_enabled(has_long)
         self.scc_v_toggle.action_item.set_enabled(True)
         self.scc_m_toggle.action_item.set_enabled(True)
       else:
@@ -152,8 +160,10 @@ class CruiseLayout(Widget):
         ui_state.params.remove("DynamicExperimentalControl")
         ui_state.params.remove("SmartCruiseControlVision")
         ui_state.params.remove("SmartCruiseControlMap")
+        ui_state.params.remove("SmoothStops")
         self.custom_acc_toggle.action_item.set_enabled(False)
         self.dec_toggle.action_item.set_enabled(False)
+        self.smooth_stops_toggle.action_item.set_enabled(False)
         self.scc_v_toggle.action_item.set_enabled(False)
         self.scc_m_toggle.action_item.set_enabled(False)
 
