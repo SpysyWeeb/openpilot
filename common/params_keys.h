@@ -227,7 +227,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
 
     {"DynamicExperimentalControl", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"SmoothStops", {PERSISTENT | BACKUP, BOOL, "0"}},
-    {"SmoothStopsLevel", {PERSISTENT | BACKUP, INT, "3"}},
+    {"SmoothStopsLevel", {PERSISTENT | BACKUP, INT, "2"}},
     {"BlindSpot", {PERSISTENT | BACKUP, BOOL, "0"}},
 
     // sunnypilot model params

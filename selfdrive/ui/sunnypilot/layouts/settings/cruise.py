@@ -98,7 +98,7 @@ class CruiseLayout(Widget):
     self.smooth_stops_level = option_item_sp(
       title=tr("Stop Smoothness"),
       param="SmoothStopsLevel",
-      min_value=1, max_value=5, value_change_step=1,
+      min_value=1, max_value=3, value_change_step=1,
       inline=True)
 
     items = [

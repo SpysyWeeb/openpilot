@@ -34,15 +34,15 @@ MIN_LEAD_DISTANCE = 4.0  # m, keep full braking authority when a lead is closer 
 # level -> (k [1/s], c [m/s^2])
 SMOOTHNESS_LEVELS = {
   1: (1.10, 0.40),
-  2: (0.90, 0.35),
-  3: (0.70, 0.30),
-  4: (0.55, 0.25),
-  5: (0.45, 0.20),
+  2: (0.70, 0.30),
+  3: (0.45, 0.20),
 }
-DEFAULT_LEVEL = 3
+DEFAULT_LEVEL = 2
 
 # level -> scale on longcontrol's stopping-state brake ramp (CP.stoppingDecelRate)
-STOPPING_DECEL_RATE_SCALE = {1: 0.60, 2: 0.50, 3: 0.40, 4: 0.30, 5: 0.25}
+# while the car is still moving; once at standstill the hold builds at stock rate,
+# where it cannot be felt
+STOPPING_DECEL_RATE_SCALE = {1: 0.25, 2: 0.15, 3: 0.085}
 
 
 def read_smooth_stops_params(params: Params) -> tuple[bool, int]:
@@ -108,7 +108,8 @@ class SmoothStopsStoppingRamp:
       self.enabled, self.level = read_smooth_stops_params(self.params)
     self.frame += 1
 
-  def get_stopping_decel_rate(self, stock_rate: float) -> float:
-    if not self.enabled:
+  def get_stopping_decel_rate(self, stock_rate: float, standstill: bool) -> float:
+    # only the ramp while still moving is felt; build the hold at stock rate once stopped
+    if not self.enabled or standstill:
       return stock_rate
     return stock_rate * STOPPING_DECEL_RATE_SCALE[self.level]
