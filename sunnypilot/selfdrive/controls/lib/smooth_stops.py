@@ -24,7 +24,7 @@ corners and slowdowns is untouched, and bypassed whenever a lead is close so
 braking authority is never reduced when the gap demands it.
 """
 from openpilot.common.params import Params
-from openpilot.common.realtime import DT_MDL
+from openpilot.common.realtime import DT_CTRL, DT_MDL
 from openpilot.sunnypilot import PARAMS_UPDATE_PERIOD
 
 ACTIVATION_SPEED = 3.5  # m/s, cap is computed below this; near no-op at the top end
@@ -41,6 +41,15 @@ SMOOTHNESS_LEVELS = {
 }
 DEFAULT_LEVEL = 3
 
+# level -> scale on longcontrol's stopping-state brake ramp (CP.stoppingDecelRate)
+STOPPING_DECEL_RATE_SCALE = {1: 0.60, 2: 0.50, 3: 0.40, 4: 0.30, 5: 0.25}
+
+
+def read_smooth_stops_params(params: Params) -> tuple[bool, int]:
+  enabled = params.get_bool("SmoothStops")
+  level = int(params.get("SmoothStopsLevel", return_default=True))
+  return enabled, min(max(level, min(SMOOTHNESS_LEVELS)), max(SMOOTHNESS_LEVELS))
+
 
 class SmoothStops:
   def __init__(self):
@@ -52,9 +61,7 @@ class SmoothStops:
     self.read_params()
 
   def read_params(self) -> None:
-    self.enabled = self.params.get_bool("SmoothStops")
-    level = int(self.params.get("SmoothStopsLevel", return_default=True))
-    self.level = min(max(level, min(SMOOTHNESS_LEVELS)), max(SMOOTHNESS_LEVELS))
+    self.enabled, self.level = read_smooth_stops_params(self.params)
 
   def update(self) -> None:
     if self.frame % int(PARAMS_UPDATE_PERIOD / DT_MDL) == 0:
@@ -78,3 +85,30 @@ class SmoothStops:
       a_target = brake_floor
 
     return a_target
+
+
+class SmoothStopsStoppingRamp:
+  """Controls-side companion to SmoothStops, running at 100 Hz in longcontrol.
+
+  longcontrol's stopping state ignores the planner's aTarget and ramps the brake
+  command toward CP.stopAccel at CP.stoppingDecelRate; that ramp is what the car
+  feels at the moment of physical standstill. Slowing the ramp lands the stop
+  gently while the full stopAccel hold still arrives - just after the car is
+  already stationary. Stock behavior whenever Smooth Stops is disabled.
+  """
+
+  def __init__(self):
+    self.params = Params()
+    self.frame = 0
+    self.enabled = False
+    self.level = DEFAULT_LEVEL
+
+  def update(self) -> None:
+    if self.frame % int(PARAMS_UPDATE_PERIOD / DT_CTRL) == 0:
+      self.enabled, self.level = read_smooth_stops_params(self.params)
+    self.frame += 1
+
+  def get_stopping_decel_rate(self, stock_rate: float) -> float:
+    if not self.enabled:
+      return stock_rate
+    return stock_rate * STOPPING_DECEL_RATE_SCALE[self.level]
