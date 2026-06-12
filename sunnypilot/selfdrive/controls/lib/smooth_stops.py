@@ -46,8 +46,14 @@ DEFAULT_LEVEL = 2
 
 
 # settle-phase failsafe and smoothing
-LINGER_SPEED = 0.3  # m/s, crawling below this without standstill arms the failsafe
+LINGER_SPEED = 0.5  # m/s, crawling below this without standstill arms the failsafe
 LINGER_TIME = 1.0  # s, how long to crawl before the clamp is allowed to finish the stop
+
+# progress watchdog: while the cap is limiting braking, the car must keep slowing.
+# If speed stops decreasing, release the cap progressively until it does
+STALL_TIME = 1.0  # s, no progress for this long starts releasing the cap
+STALL_PROGRESS = 0.02  # m/s, minimum speed reduction to count as progress
+STALL_RELEASE_RATE = 0.5  # m/s^2 of additional allowed braking per second of stall
 SETTLE_SMOOTH_SPEED = 1.5  # m/s, jerk-limit the PID output below this
 SETTLE_JERK_LIMIT = 2.5  # m/s^3
 
@@ -65,7 +71,13 @@ class SmoothStops:
     self.enabled = False
     self.level = DEFAULT_LEVEL
     self.active = False
+    self._v_min = float("inf")
+    self._stall_frames = 0
     self.read_params()
+
+  def _reset_watchdog(self) -> None:
+    self._v_min = float("inf")
+    self._stall_frames = 0
 
   def read_params(self) -> None:
     self.enabled, self.level = read_smooth_stops_params(self.params)
@@ -79,8 +91,10 @@ class SmoothStops:
     self.active = False
 
     if not self.enabled or a_target >= 0. or v_ego > ACTIVATION_SPEED:
+      self._reset_watchdog()
       return a_target
     if plan_min_v > STOP_INTENT_SPEED:
+      self._reset_watchdog()
       return a_target
     k, c = SMOOTHNESS_LEVELS[self.level]
     brake_floor = -(k * v_ego + c)
@@ -92,8 +106,20 @@ class SmoothStops:
       # a felt transition
       blend = float(np.interp(lead_one.dRel, [MIN_LEAD_DISTANCE, LEAD_RELEASE_DISTANCE], [0.0, 1.0]))
       if blend <= 0.0:
+        self._reset_watchdog()
         return a_target
       brake_floor = brake_floor * blend + ACCEL_MIN * (1.0 - blend)
+
+    # progress watchdog: the cap must never hold speed. If the car has stopped
+    # slowing while we limit braking, release the cap until it slows again
+    if v_ego < self._v_min - STALL_PROGRESS:
+      self._v_min = v_ego
+      self._stall_frames = 0
+    else:
+      self._stall_frames += 1
+    stalled_s = max(self._stall_frames * DT_MDL - STALL_TIME, 0.0)
+    if stalled_s > 0.0:
+      brake_floor = max(brake_floor - STALL_RELEASE_RATE * stalled_s, ACCEL_MIN)
 
     if a_target < brake_floor:
       self.active = True
