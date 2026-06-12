@@ -39,11 +39,6 @@ SMOOTHNESS_LEVELS = {
 }
 DEFAULT_LEVEL = 2
 
-# level -> deceleration to settle onto while rolling the last bit to standstill,
-# like a human releasing the brake just before the stop. Higher level = lighter
-# settle = softer, slightly longer finish
-SETTLE_ACCEL = {1: -0.35, 2: -0.25, 3: -0.15}
-SETTLE_RELEASE_RATE = 1.2  # m/s^3, how quickly the brake is eased off toward the settle
 
 
 def read_smooth_stops_params(params: Params) -> tuple[bool, int]:
@@ -88,18 +83,21 @@ class SmoothStops:
     return a_target
 
 
-class SmoothStopsStoppingRamp:
+class SmoothStopsLongControl:
   """Controls-side companion to SmoothStops, running at 100 Hz in longcontrol.
 
-  Stock longcontrol's stopping state only ever adds brake pressure, ramping
-  toward CP.stopAccel while the car is still rolling - which is felt as a hard
-  finish at the moment of standstill, and amplifies the driveline's creep-torque
-  unload clunk. A human does the opposite: release the brake just before the
-  stop, settle to zero on a whisper of deceleration, then clamp once stationary.
+  Stock longcontrol enters the stopping state while the car is still rolling,
+  which has two harsh consequences: the open-loop ramp adds brake pressure all
+  the way into standstill, and on cars like HKG the stopping state asserts a
+  stop request on the CAN bus, letting the factory brake controller run its own
+  clamp procedure while still moving - whichever engages first wins, making the
+  end of the stop a per-stop lottery.
 
-  While moving, ease the command off toward a light settle deceleration; once
-  the car reports standstill, ramp to the full stopAccel hold at stock rate,
-  where it cannot be felt. Stock behavior whenever Smooth Stops is disabled.
+  Defer the stopping state until the car is actually stationary. While rolling,
+  the PID stays in charge - closed loop on measured acceleration - tracking the
+  planner's landing law all the way down, adapting to slope, brake lag, and
+  creep torque. The clamp and the stop request then land on a stopped car,
+  where they cannot be felt. Stock behavior whenever Smooth Stops is disabled.
   """
 
   def __init__(self):
@@ -113,21 +111,7 @@ class SmoothStopsStoppingRamp:
       self.enabled, self.level = read_smooth_stops_params(self.params)
     self.frame += 1
 
-  def get_stopping_accel(self, last_output_accel: float, standstill: bool, CP) -> float:
-    output_accel = last_output_accel
-
-    if not self.enabled or standstill:
-      # stock behavior: build toward the parking hold
-      if output_accel > CP.stopAccel:
-        output_accel = min(output_accel, 0.0)
-        output_accel -= CP.stoppingDecelRate * DT_CTRL
-      return output_accel
-
-    # still rolling: release the brake toward the settle deceleration
-    settle = SETTLE_ACCEL[self.level]
-    output_accel = min(output_accel, 0.0)
-    if output_accel < settle:
-      output_accel = min(output_accel + SETTLE_RELEASE_RATE * DT_CTRL, settle)
-    else:
-      output_accel = max(output_accel - CP.stoppingDecelRate * DT_CTRL, settle)
-    return output_accel
+  def defer_stopping(self, should_stop: bool, standstill: bool) -> bool:
+    if not self.enabled:
+      return should_stop
+    return should_stop and standstill
