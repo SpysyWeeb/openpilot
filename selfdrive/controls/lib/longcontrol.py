@@ -70,7 +70,7 @@ class LongControl:
     if self.long_control_state != LongCtrlState.stopping:
       # defer only the entry into the stopping state; once stopped, the raw plan
       # signal governs exits so a standstill flicker can never trigger a launch
-      should_stop = self.smooth_stops.defer_stopping(should_stop, CS.standstill)
+      should_stop = self.smooth_stops.defer_stopping(should_stop, CS.standstill, CS.vEgo)
 
     self.long_control_state = long_control_state_trans(self.CP, self.CP_SP, active, self.long_control_state, CS.vEgo,
                                                        should_stop, CS.brakePressed,
@@ -94,6 +94,7 @@ class LongControl:
       error = a_target - CS.aEgo
       output_accel = self.pid.update(error, speed=CS.vEgo,
                                      feedforward=a_target)
+      output_accel = self.smooth_stops.smooth_pid_output(output_accel, CS.vEgo)
 
     self.last_output_accel = np.clip(output_accel, accel_limits[0], accel_limits[1])
     return self.last_output_accel

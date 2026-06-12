@@ -41,6 +41,13 @@ DEFAULT_LEVEL = 2
 
 
 
+# settle-phase failsafe and smoothing
+LINGER_SPEED = 0.3  # m/s, crawling below this without standstill arms the failsafe
+LINGER_TIME = 1.0  # s, how long to crawl before the clamp is allowed to finish the stop
+SETTLE_SMOOTH_SPEED = 1.5  # m/s, jerk-limit the PID output below this
+SETTLE_JERK_LIMIT = 2.5  # m/s^3
+
+
 def read_smooth_stops_params(params: Params) -> tuple[bool, int]:
   enabled = params.get_bool("SmoothStops")
   level = int(params.get("SmoothStopsLevel", return_default=True))
@@ -105,13 +112,42 @@ class SmoothStopsLongControl:
     self.frame = 0
     self.enabled = False
     self.level = DEFAULT_LEVEL
+    self.linger_frames = 0
+    self.last_pid_output = 0.0
 
   def update(self) -> None:
     if self.frame % int(PARAMS_UPDATE_PERIOD / DT_CTRL) == 0:
       self.enabled, self.level = read_smooth_stops_params(self.params)
     self.frame += 1
 
-  def defer_stopping(self, should_stop: bool, standstill: bool) -> bool:
+  def defer_stopping(self, should_stop: bool, standstill: bool, v_ego: float) -> bool:
     if not self.enabled:
+      self.linger_frames = 0
       return should_stop
-    return should_stop and standstill
+
+    if not should_stop or standstill:
+      self.linger_frames = 0
+      return should_stop
+
+    # the plan wants a stop and the car is crawling: if the light settle brake
+    # never closes the last bit to standstill, stop deferring and let the clamp
+    # finish the stop. The car must never keep rolling when it should be stopped.
+    if v_ego < LINGER_SPEED:
+      self.linger_frames += 1
+      if self.linger_frames >= int(LINGER_TIME / DT_CTRL):
+        return True
+    else:
+      self.linger_frames = 0
+
+    return False
+
+  def smooth_pid_output(self, output_accel: float, v_ego: float) -> float:
+    # jerk-limit the command in the settle regime to remove low-speed PID dither
+    if not self.enabled or v_ego > SETTLE_SMOOTH_SPEED:
+      self.last_pid_output = output_accel
+      return output_accel
+
+    step = SETTLE_JERK_LIMIT * DT_CTRL
+    output_accel = min(max(output_accel, self.last_pid_output - step), self.last_pid_output + step)
+    self.last_pid_output = output_accel
+    return output_accel
