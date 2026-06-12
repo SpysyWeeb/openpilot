@@ -82,7 +82,10 @@ class LongitudinalPlannerSP:
     self.e2e_alerts_helper.update(sm, self.events_sp)
 
   def apply_smooth_stops(self, sm: messaging.SubMaster, v_ego: float, a_target: float) -> float:
-    return self.smooth_stops.apply(a_target, v_ego, sm['radarState'].leadOne)
+    # v_desired_trajectory is the planner's solved velocity plan; reaching ~0 within
+    # the horizon is the signal that this braking is a stop, not a slowdown
+    plan_min_v = float(min(self.v_desired_trajectory))
+    return self.smooth_stops.apply(a_target, v_ego, sm['radarState'].leadOne, plan_min_v)
 
   def publish_longitudinal_plan_sp(self, sm: messaging.SubMaster, pm: messaging.PubMaster) -> None:
     plan_sp_send = messaging.new_message('longitudinalPlanSP')
