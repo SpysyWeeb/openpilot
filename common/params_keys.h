@@ -226,8 +226,12 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ToyotaStopAndGoHack", {PERSISTENT | BACKUP, BOOL, "0"}},
 
     {"DynamicExperimentalControl", {PERSISTENT | BACKUP, BOOL, "0"}},
+<<<<<<< HEAD
     {"SmoothStops", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"SmoothStopsLevel", {PERSISTENT | BACKUP, INT, "2"}},
+=======
+    {"IncreasedStoppedDistance", {PERSISTENT | BACKUP, INT, "0"}},
+>>>>>>> increased-stop-distance
     {"BlindSpot", {PERSISTENT | BACKUP, BOOL, "0"}},
 
     // sunnypilot model params
