@@ -9,6 +9,7 @@ from cereal import messaging, custom
 from opendbc.car import structs
 from openpilot.common.constants import CV
 from openpilot.selfdrive.car.cruise import V_CRUISE_MAX
+from openpilot.sunnypilot.selfdrive.controls.lib.custom_longitudinal_tuning import CustomLongitudinalTuning
 from openpilot.sunnypilot.selfdrive.controls.lib.dec.dec import DynamicExperimentalController
 from openpilot.sunnypilot.selfdrive.controls.lib.e2e_alerts_helper import E2EAlertsHelper
 from openpilot.sunnypilot.selfdrive.controls.lib.increased_stop_distance import IncreasedStopDistance
@@ -29,6 +30,7 @@ class LongitudinalPlannerSP:
     self.resolver = SpeedLimitResolver()
     self.dec = DynamicExperimentalController(CP, mpc)
     self.increased_stop_distance = IncreasedStopDistance()
+    self.custom_tuning = CustomLongitudinalTuning()
     self.scc = SmartCruiseControl()
     self.smooth_stops = SmoothStops()
     self.resolver = SpeedLimitResolver()
@@ -82,6 +84,7 @@ class LongitudinalPlannerSP:
     self.dec.update(sm)
     self.smooth_stops.update()
     self.increased_stop_distance.update()
+    self.custom_tuning.update()
     self.e2e_alerts_helper.update(sm, self.events_sp)
 
   def apply_smooth_stops(self, sm: messaging.SubMaster, v_ego: float, a_target: float) -> float:
@@ -95,6 +98,9 @@ class LongitudinalPlannerSP:
       return a_target, should_stop
     return self.increased_stop_distance.adjust_e2e_stop(a_target, should_stop, v_ego, sm['modelV2'])
 
+  def get_accel_limits(self, sm: messaging.SubMaster, v_ego: float, accel_limits: list[float]) -> list[float]:
+    personality = sm['selfdriveState'].personality
+    return [accel_limits[0], self.custom_tuning.get_max_accel(v_ego, accel_limits[1], personality)]
 
   def publish_longitudinal_plan_sp(self, sm: messaging.SubMaster, pm: messaging.PubMaster) -> None:
     plan_sp_send = messaging.new_message('longitudinalPlanSP')
@@ -150,6 +156,13 @@ class LongitudinalPlannerSP:
     assist.active = self.sla.is_active
     assist.vTarget = float(self.sla.output_v_target)
     assist.aTarget = float(self.sla.output_a_target)
+
+    # Custom Personality
+    customTuning = longitudinalPlanSP.customLongitudinalTuning
+    customTuning.enabled = bool(self.custom_tuning.enabled)
+    customTuning.maxAccel = float(self.custom_tuning.output_max_accel)
+    customTuning.jerkFactor = float(self.custom_tuning.output_jerk_factor)
+    customTuning.tFollow = float(self.custom_tuning.output_t_follow)
 
     # E2E Alerts
     e2eAlerts = longitudinalPlanSP.e2eAlerts

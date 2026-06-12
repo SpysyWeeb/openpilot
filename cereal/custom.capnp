@@ -194,6 +194,14 @@ struct LongitudinalPlanSP @0xf35cc4560bbf6ec2 {
   aTarget @5 :Float32;
   events @6 :List(OnroadEventSP.Event);
   e2eAlerts @7 :E2eAlerts;
+  customLongitudinalTuning @8 :CustomLongitudinalTuning;
+
+  struct CustomLongitudinalTuning {
+    enabled @0 :Bool;         # Custom Personality active
+    maxAccel @1 :Float32;     # current max accel cap in effect, m/s^2
+    jerkFactor @2 :Float32;   # total MPC jerk cost factor in effect
+    tFollow @3 :Float32;      # follow distance in effect, s
+  }
 
   struct DynamicExperimentalControl {
     state @0 :DynamicExperimentalControlState;

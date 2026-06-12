@@ -6,17 +6,20 @@ See the LICENSE.md file in the root directory for more details.
 """
 from enum import IntEnum
 
+from openpilot.selfdrive.ui.sunnypilot.layouts.settings.cruise_sub_layouts.custom_personality_settings import CustomPersonalityLayout
 from openpilot.selfdrive.ui.sunnypilot.layouts.settings.cruise_sub_layouts.speed_limit_settings import SpeedLimitSettingsLayout
 from openpilot.selfdrive.ui.ui_state import ui_state
 from openpilot.system.ui.lib.multilang import tr, tr_noop
-from openpilot.system.ui.sunnypilot.widgets.list_view import toggle_item_sp, option_item_sp, simple_button_item_sp
+from openpilot.system.ui.sunnypilot.widgets.list_view import toggle_item_sp, option_item_sp, dual_button_item_sp
 from openpilot.system.ui.widgets import Widget
+from openpilot.system.ui.widgets.button import ButtonStyle
 from openpilot.system.ui.widgets.scroller_tici import Scroller
 
 
 class PanelType(IntEnum):
   CRUISE = 0
   SLA = 1
+  CUSTOM_PERSONALITY = 2
 
 
 ICBM_DESC = tr_noop("When enabled, sunnypilot will attempt to manage the built-in cruise control buttons " +
@@ -36,6 +39,7 @@ class CruiseLayout(Widget):
     super().__init__()
     self._current_panel = PanelType.CRUISE
     self._speed_limit_layout = SpeedLimitSettingsLayout(lambda: self._set_current_panel(PanelType.CRUISE))
+    self._custom_personality_layout = CustomPersonalityLayout(lambda: self._set_current_panel(PanelType.CRUISE))
 
     items = self._initialize_items()
     self._scroller = Scroller(items, line_separator=True, spacing=0)
@@ -76,10 +80,12 @@ class CruiseLayout(Widget):
       min_value=1, max_value=3, value_change_step=1,
       inline=True)
 
-    self.sla_settings_button = simple_button_item_sp(
-      button_text=lambda: tr("Speed Limit"),
-      button_width=800,
-      callback=lambda: self._set_current_panel(PanelType.SLA)
+    self.sub_panel_buttons = dual_button_item_sp(
+      left_text=lambda: tr("Custom Personality"),
+      right_text=lambda: tr("Speed Limit"),
+      left_callback=lambda: self._set_current_panel(PanelType.CUSTOM_PERSONALITY),
+      right_callback=lambda: self._set_current_panel(PanelType.SLA),
+      right_style=ButtonStyle.NORMAL,
     )
 
     self.dec_toggle = toggle_item_sp(
@@ -120,13 +126,15 @@ class CruiseLayout(Widget):
       self.custom_acc_toggle,
       self.custom_acc_short_increment,
       self.custom_acc_long_increment,
-      self.sla_settings_button,
+      self.sub_panel_buttons,
     ]
     return items
 
   def _render(self, rect):
     if self._current_panel == PanelType.SLA:
       self._speed_limit_layout.render(rect)
+    elif self._current_panel == PanelType.CUSTOM_PERSONALITY:
+      self._custom_personality_layout.render(rect)
     else:
       self._scroller.render(rect)
 
@@ -140,6 +148,8 @@ class CruiseLayout(Widget):
     self._current_panel = panel
     if panel == PanelType.SLA:
       self._speed_limit_layout.show_event()
+    elif panel == PanelType.CUSTOM_PERSONALITY:
+      self._custom_personality_layout.show_event()
 
   def _update_state(self):
     super()._update_state()
@@ -182,6 +192,7 @@ class CruiseLayout(Widget):
         ui_state.params.remove("SmoothStops")
         ui_state.params.remove("SmoothStopsLevel")
         ui_state.params.remove("IncreasedStoppedDistance")
+        ui_state.params.remove("CustomPersonality")
         self.custom_acc_toggle.action_item.set_enabled(False)
         self.dec_toggle.action_item.set_enabled(False)
         self.smooth_stops_toggle.action_item.set_enabled(False)

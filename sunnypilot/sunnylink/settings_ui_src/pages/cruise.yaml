@@ -103,6 +103,128 @@ sections:
     min: 0
     max: 5
     step: 1
+- id: custom_personality
+  title: Custom Personality
+  description: ''
+  enablement:
+  - $ref: '#/macros/longitudinal'
+  items:
+  - key: CustomPersonality
+    widget: toggle
+    title: Enable Custom Personality
+    description: Give each Driving Personality your own acceleration, responsiveness, and follow distance.
+    visibility:
+    - $ref: '#/macros/longitudinal'
+    enablement:
+    - $ref: '#/macros/longitudinal'
+  sub_panels:
+  - id: custom_personality_settings
+    label: Custom Personality Settings
+    trigger_key: CustomPersonality
+    trigger_condition:
+      type: param
+      key: CustomPersonality
+      equals: true
+    items:
+    - key: CustomPersonalityAggressiveAccel
+      widget: option
+      title: 'Aggressive: Acceleration'
+      description: Maximum acceleration from a stop, in 0.1 m/s^2 steps. Stock is 16 (1.6 m/s^2).
+      min: 8
+      max: 20
+      step: 1
+      enablement:
+      - type: param
+        key: CustomPersonality
+        equals: true
+    - key: CustomPersonalityAggressiveJerkMultiplier
+      widget: option
+      title: 'Aggressive: Jerk Value'
+      description: How much jerk sunnypilot may use, relative to stock, in 0.1x steps. 10 (1.0x) matches stock Standard and Relaxed; 20 (2.0x) matches stock Aggressive.
+      min: 5
+      max: 40
+      step: 1
+      enablement:
+      - type: param
+        key: CustomPersonality
+        equals: true
+    - key: CustomPersonalityAggressiveFollow
+      widget: option
+      title: 'Aggressive: Follow Distance'
+      description: Time gap to the lead vehicle, in 0.05 s steps. Stock - Aggressive 25 (1.25 s), Standard 29 (1.45 s), Relaxed 35 (1.75 s).
+      min: 20
+      max: 50
+      step: 1
+      enablement:
+      - type: param
+        key: CustomPersonality
+        equals: true
+    - key: CustomPersonalityStandardAccel
+      widget: option
+      title: 'Standard: Acceleration'
+      description: Maximum acceleration from a stop, in 0.1 m/s^2 steps. Stock is 16 (1.6 m/s^2).
+      min: 8
+      max: 20
+      step: 1
+      enablement:
+      - type: param
+        key: CustomPersonality
+        equals: true
+    - key: CustomPersonalityStandardJerkMultiplier
+      widget: option
+      title: 'Standard: Jerk Value'
+      description: How much jerk sunnypilot may use, relative to stock, in 0.1x steps. 10 (1.0x) matches stock Standard and Relaxed; 20 (2.0x) matches stock Aggressive.
+      min: 5
+      max: 40
+      step: 1
+      enablement:
+      - type: param
+        key: CustomPersonality
+        equals: true
+    - key: CustomPersonalityStandardFollow
+      widget: option
+      title: 'Standard: Follow Distance'
+      description: Time gap to the lead vehicle, in 0.05 s steps. Stock - Aggressive 25 (1.25 s), Standard 29 (1.45 s), Relaxed 35 (1.75 s).
+      min: 20
+      max: 50
+      step: 1
+      enablement:
+      - type: param
+        key: CustomPersonality
+        equals: true
+    - key: CustomPersonalityRelaxedAccel
+      widget: option
+      title: 'Relaxed: Acceleration'
+      description: Maximum acceleration from a stop, in 0.1 m/s^2 steps. Stock is 16 (1.6 m/s^2).
+      min: 8
+      max: 20
+      step: 1
+      enablement:
+      - type: param
+        key: CustomPersonality
+        equals: true
+    - key: CustomPersonalityRelaxedJerkMultiplier
+      widget: option
+      title: 'Relaxed: Jerk Value'
+      description: How much jerk sunnypilot may use, relative to stock, in 0.1x steps. 10 (1.0x) matches stock Standard and Relaxed; 20 (2.0x) matches stock Aggressive.
+      min: 5
+      max: 40
+      step: 1
+      enablement:
+      - type: param
+        key: CustomPersonality
+        equals: true
+    - key: CustomPersonalityRelaxedFollow
+      widget: option
+      title: 'Relaxed: Follow Distance'
+      description: Time gap to the lead vehicle, in 0.05 s steps. Stock - Aggressive 25 (1.25 s), Standard 29 (1.45 s), Relaxed 35 (1.75 s).
+      min: 20
+      max: 50
+      step: 1
+      enablement:
+      - type: param
+        key: CustomPersonality
+        equals: true
 - id: custom_acc_increments
   title: Custom ACC Speed Intervals
   description: ''
