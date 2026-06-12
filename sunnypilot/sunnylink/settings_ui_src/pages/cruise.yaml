@@ -57,6 +57,40 @@ sections:
         type: capability
         field: has_longitudinal_control
         equals: true
+- id: smooth_stops
+  title: Smooth Stops
+  description: ''
+  enablement:
+  - $ref: '#/macros/longitudinal'
+  items:
+  - key: SmoothStops
+    widget: toggle
+    title: Smooth Stops
+    description: Finish every stop with a smooth landing, no matter how firmly it began. Higher smoothness lands more gently
+      and adds a little stopping distance. Full braking remains available when a lead vehicle is close.
+    visibility:
+    - $ref: '#/macros/longitudinal'
+    enablement:
+    - $ref: '#/macros/longitudinal'
+  sub_panels:
+  - id: smooth_stops_settings
+    label: Smooth Stops Settings
+    trigger_key: SmoothStops
+    trigger_condition:
+      type: param
+      key: SmoothStops
+      equals: true
+    items:
+    - key: SmoothStopsLevel
+      widget: option
+      title: Stop Smoothness
+      min: 1
+      max: 3
+      step: 1
+      enablement:
+      - type: param
+        key: SmoothStops
+        equals: true
 - id: custom_acc_increments
   title: Custom ACC Speed Intervals
   description: ''
