@@ -23,13 +23,17 @@ Only applied when the planner's own trajectory comes to a stop, so braking for
 corners and slowdowns is untouched, and bypassed whenever a lead is close so
 braking authority is never reduced when the gap demands it.
 """
+import numpy as np
+
+from opendbc.car.interfaces import ACCEL_MIN
 from openpilot.common.params import Params
 from openpilot.common.realtime import DT_CTRL, DT_MDL
 from openpilot.sunnypilot import PARAMS_UPDATE_PERIOD
 
 ACTIVATION_SPEED = 3.5  # m/s, cap is computed below this; near no-op at the top end
 STOP_INTENT_SPEED = 0.5  # m/s, plan must reach below this to count as a stop
-MIN_LEAD_DISTANCE = 4.0  # m, keep full braking authority when a lead is closer than this
+MIN_LEAD_DISTANCE = 5.0  # m, full braking authority when a lead is closer than this
+LEAD_RELEASE_DISTANCE = 9.0  # m, the cap fades out between here and MIN_LEAD_DISTANCE
 
 # level -> (k [1/s], c [m/s^2])
 SMOOTHNESS_LEVELS = {
@@ -78,11 +82,19 @@ class SmoothStops:
       return a_target
     if plan_min_v > STOP_INTENT_SPEED:
       return a_target
-    if lead_one.status and lead_one.dRel < MIN_LEAD_DISTANCE:
-      return a_target
-
     k, c = SMOOTHNESS_LEVELS[self.level]
     brake_floor = -(k * v_ego + c)
+
+    if lead_one.status:
+      # the landing trades braking for distance, which comes out of the gap to the
+      # lead. Release the cap progressively as the gap closes so the car settles
+      # further back, reaching full braking authority by MIN_LEAD_DISTANCE without
+      # a felt transition
+      blend = float(np.interp(lead_one.dRel, [MIN_LEAD_DISTANCE, LEAD_RELEASE_DISTANCE], [0.0, 1.0]))
+      if blend <= 0.0:
+        return a_target
+      brake_floor = brake_floor * blend + ACCEL_MIN * (1.0 - blend)
+
     if a_target < brake_floor:
       self.active = True
       a_target = brake_floor
