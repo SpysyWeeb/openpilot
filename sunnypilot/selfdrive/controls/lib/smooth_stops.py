@@ -39,10 +39,11 @@ SMOOTHNESS_LEVELS = {
 }
 DEFAULT_LEVEL = 2
 
-# level -> scale on longcontrol's stopping-state brake ramp (CP.stoppingDecelRate)
-# while the car is still moving; once at standstill the hold builds at stock rate,
-# where it cannot be felt
-STOPPING_DECEL_RATE_SCALE = {1: 0.25, 2: 0.15, 3: 0.085}
+# level -> deceleration to settle onto while rolling the last bit to standstill,
+# like a human releasing the brake just before the stop. Higher level = lighter
+# settle = softer, slightly longer finish
+SETTLE_ACCEL = {1: -0.35, 2: -0.25, 3: -0.15}
+SETTLE_RELEASE_RATE = 1.2  # m/s^3, how quickly the brake is eased off toward the settle
 
 
 def read_smooth_stops_params(params: Params) -> tuple[bool, int]:
@@ -90,11 +91,15 @@ class SmoothStops:
 class SmoothStopsStoppingRamp:
   """Controls-side companion to SmoothStops, running at 100 Hz in longcontrol.
 
-  longcontrol's stopping state ignores the planner's aTarget and ramps the brake
-  command toward CP.stopAccel at CP.stoppingDecelRate; that ramp is what the car
-  feels at the moment of physical standstill. Slowing the ramp lands the stop
-  gently while the full stopAccel hold still arrives - just after the car is
-  already stationary. Stock behavior whenever Smooth Stops is disabled.
+  Stock longcontrol's stopping state only ever adds brake pressure, ramping
+  toward CP.stopAccel while the car is still rolling - which is felt as a hard
+  finish at the moment of standstill, and amplifies the driveline's creep-torque
+  unload clunk. A human does the opposite: release the brake just before the
+  stop, settle to zero on a whisper of deceleration, then clamp once stationary.
+
+  While moving, ease the command off toward a light settle deceleration; once
+  the car reports standstill, ramp to the full stopAccel hold at stock rate,
+  where it cannot be felt. Stock behavior whenever Smooth Stops is disabled.
   """
 
   def __init__(self):
@@ -108,8 +113,21 @@ class SmoothStopsStoppingRamp:
       self.enabled, self.level = read_smooth_stops_params(self.params)
     self.frame += 1
 
-  def get_stopping_decel_rate(self, stock_rate: float, standstill: bool) -> float:
-    # only the ramp while still moving is felt; build the hold at stock rate once stopped
+  def get_stopping_accel(self, last_output_accel: float, standstill: bool, CP) -> float:
+    output_accel = last_output_accel
+
     if not self.enabled or standstill:
-      return stock_rate
-    return stock_rate * STOPPING_DECEL_RATE_SCALE[self.level]
+      # stock behavior: build toward the parking hold
+      if output_accel > CP.stopAccel:
+        output_accel = min(output_accel, 0.0)
+        output_accel -= CP.stoppingDecelRate * DT_CTRL
+      return output_accel
+
+    # still rolling: release the brake toward the settle deceleration
+    settle = SETTLE_ACCEL[self.level]
+    output_accel = min(output_accel, 0.0)
+    if output_accel < settle:
+      output_accel = min(output_accel + SETTLE_RELEASE_RATE * DT_CTRL, settle)
+    else:
+      output_accel = max(output_accel - CP.stoppingDecelRate * DT_CTRL, settle)
+    return output_accel
