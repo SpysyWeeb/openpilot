@@ -226,6 +226,17 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"ToyotaStopAndGoHack", {PERSISTENT | BACKUP, BOOL, "0"}},
 
     {"DynamicExperimentalControl", {PERSISTENT | BACKUP, BOOL, "0"}},
+    {"CustomPersonality", {PERSISTENT | BACKUP, BOOL, "0"}},
+    {"CustomPersonalityTarget", {PERSISTENT | BACKUP, INT, "1"}},
+    {"CustomPersonalityAggressiveAccel", {PERSISTENT | BACKUP, INT, "16"}},
+    {"CustomPersonalityAggressiveJerkMultiplier", {PERSISTENT | BACKUP, INT, "20"}},
+    {"CustomPersonalityAggressiveFollow", {PERSISTENT | BACKUP, INT, "25"}},
+    {"CustomPersonalityStandardAccel", {PERSISTENT | BACKUP, INT, "16"}},
+    {"CustomPersonalityStandardJerkMultiplier", {PERSISTENT | BACKUP, INT, "10"}},
+    {"CustomPersonalityStandardFollow", {PERSISTENT | BACKUP, INT, "29"}},
+    {"CustomPersonalityRelaxedAccel", {PERSISTENT | BACKUP, INT, "16"}},
+    {"CustomPersonalityRelaxedJerkMultiplier", {PERSISTENT | BACKUP, INT, "10"}},
+    {"CustomPersonalityRelaxedFollow", {PERSISTENT | BACKUP, INT, "35"}},
     {"BlindSpot", {PERSISTENT | BACKUP, BOOL, "0"}},
 
     // sunnypilot model params

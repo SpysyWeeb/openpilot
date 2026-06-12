@@ -100,9 +100,11 @@ class ButtonActionSP(ButtonAction):
 
 class DualButtonActionSP(DualButtonAction):
   def __init__(self, left_text: str | Callable[[], str], right_text: str | Callable[[], str], left_callback: Callable | None = None,
-               right_callback: Callable | None = None, enabled: bool | Callable[[], bool] = True, border_radius: int = 15):
+               right_callback: Callable | None = None, enabled: bool | Callable[[], bool] = True, border_radius: int = 15,
+               right_style: ButtonStyle = ButtonStyle.DANGER):
     DualButtonAction.__init__(self, left_text, right_text, left_callback, right_callback, enabled)
     self.left_button._border_radius = self.right_button._border_radius = border_radius
+    self.right_button.set_button_style(right_style)
 
   def _render(self, rect: rl.Rectangle):
     button_spacing = 20
@@ -394,8 +396,9 @@ def button_item_sp(title: str | Callable[[], str], button_text: str | Callable[[
 
 def dual_button_item_sp(left_text: str | Callable[[], str], right_text: str | Callable[[], str], left_callback: Callable | None = None,
                         right_callback: Callable | None = None, description: str | Callable[[], str] | None = None,
-                        enabled: bool | Callable[[], bool] = True, border_radius: int = 15) -> ListItemSP:
-  action = DualButtonActionSP(left_text, right_text, left_callback, right_callback, enabled, border_radius)
+                        enabled: bool | Callable[[], bool] = True, border_radius: int = 15,
+                        right_style: ButtonStyle = ButtonStyle.DANGER) -> ListItemSP:
+  action = DualButtonActionSP(left_text, right_text, left_callback, right_callback, enabled, border_radius, right_style)
   return ListItemSP(title="", description=description, action_item=action)
 
 

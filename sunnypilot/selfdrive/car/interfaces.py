@@ -88,6 +88,10 @@ def _cleanup_unsupported_params(CP: structs.CarParams, CP_SP: structs.CarParamsS
     params.remove("CustomAccIncrementsEnabled")
     params.remove("SmartCruiseControlVision")
     params.remove("SmartCruiseControlMap")
+    params.remove("CustomPersonality")
+    for _name in ("Aggressive", "Standard", "Relaxed"):
+      for _knob in ("Accel", "JerkMultiplier", "Follow"):
+        params.remove(f"CustomPersonality{_name}{_knob}")
 
   set_speed_limit_assist_availability(CP, CP_SP, params)
 
