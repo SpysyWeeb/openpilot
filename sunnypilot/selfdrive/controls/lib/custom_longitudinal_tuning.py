@@ -59,6 +59,12 @@ FOLLOW_PARAM_SCALE = 0.05
 T_FOLLOW_MIN, T_FOLLOW_MAX = 1.00, 2.50
 
 
+def _personality_key(personality) -> int:
+  # enums read from messages arrive as capnp DynamicEnum, which int() cannot cast
+  # directly; its raw attribute holds the integer value
+  return int(getattr(personality, "raw", personality))
+
+
 class CustomLongitudinalTuning:
   def __init__(self):
     self.params = Params()
@@ -92,7 +98,7 @@ class CustomLongitudinalTuning:
       self.output_max_accel = float(default_max)
       return self.output_max_accel
 
-    takeoff = self.accel_takeoff.get(int(personality), STOCK_TAKEOFF)
+    takeoff = self.accel_takeoff.get(_personality_key(personality), STOCK_TAKEOFF)
 
     # blend between the curve anchors so the takeoff accel matches the slider,
     # with the stock curve (default_max) as the middle anchor
@@ -111,7 +117,7 @@ class CustomLongitudinalTuning:
   def get_decel_jerk_factor(self, personality) -> float:
     base = get_jerk_factor(personality)
     if self.enabled:
-      factor = self.jerk_factor.get(int(personality), base)
+      factor = self.jerk_factor.get(_personality_key(personality), base)
       self.output_jerk_factor = factor
       # returned as a multiplier on the personality's own factor, so the total equals the slider
       return factor / base
@@ -120,7 +126,7 @@ class CustomLongitudinalTuning:
 
   def get_t_follow(self, personality) -> float | None:
     if self.enabled:
-      t_follow = self.t_follow.get(int(personality), get_T_FOLLOW(personality))
+      t_follow = self.t_follow.get(_personality_key(personality), get_T_FOLLOW(personality))
       self.output_t_follow = t_follow
       return t_follow
     self.output_t_follow = get_T_FOLLOW(personality)
