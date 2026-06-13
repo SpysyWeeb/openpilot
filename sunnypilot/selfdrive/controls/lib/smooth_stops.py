@@ -44,12 +44,18 @@ DEFAULT_LEVEL = 2
 
 
 # settle-phase failsafe and smoothing
-LINGER_SPEED = 1.0  # m/s (~2.2 mph), crawling below this without standstill arms the failsafe
-LINGER_TIME = 1.0  # s, how long to crawl before the clamp is allowed to finish the stop
+LINGER_SPEED = 0.5   # m/s (~1.1 mph), absolute backstop: arms clamp-to-stop as last resort
+LINGER_TIME = 1.0    # s, how long to crawl before the clamp is allowed to finish the stop
+
+# creep floor: below CREEP_FLOOR_SPEED, nudge a_target to at least -CREEP_FLOOR_DECEL.
+# Prevents the car from coasting when the MPC is too gentle to overcome transmission
+# creep torque — no sudden clamp, just guaranteed consistent deceleration.
+CREEP_FLOOR_SPEED = 1.0   # m/s (~2.2 mph), below this enforce minimum commanded decel
+CREEP_FLOOR_DECEL = 0.40  # m/s^2, minimum commanded decel at creep speeds
 
 # progress watchdog: while the cap is limiting braking, the car must keep slowing.
 # If speed stops decreasing, release the cap progressively until it does
-STALL_TIME = 1.0  # s, no progress for this long starts releasing the cap
+STALL_TIME = 1.0    # s, no progress for this long starts releasing the cap
 STALL_PROGRESS = 0.02  # m/s, minimum speed reduction to count as progress
 STALL_RELEASE_RATE = 0.15  # m/s^2 of additional allowed braking per second of stall
 SETTLE_SMOOTH_SPEED = 1.5  # m/s, jerk-limit the PID output below this
@@ -124,6 +130,15 @@ class SmoothStops:
     if a_target < brake_floor:
       self.active = True
       a_target = brake_floor
+
+    # creep floor: if the MPC is too gentle below CREEP_FLOOR_SPEED, ensure at least
+    # CREEP_FLOOR_DECEL of braking so the car consistently decelerates to a stop
+    # rather than coasting against transmission creep torque.
+    if v_ego < CREEP_FLOOR_SPEED:
+      creep_limit = -CREEP_FLOOR_DECEL
+      if a_target > creep_limit:
+        self.active = True
+        a_target = creep_limit
 
     return a_target
 
