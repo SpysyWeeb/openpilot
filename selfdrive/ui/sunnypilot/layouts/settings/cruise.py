@@ -105,6 +105,7 @@ class CruiseLayout(Widget):
       title=tr("Stop Smoothness"),
       param="SmoothStopsLevel",
       min_value=1, max_value=3, value_change_step=1,
+      label_callback=lambda value: [tr("Soft"), tr("Softer"), tr("Softest")][value - 1],
       inline=True)
 
     self.increased_stopped_distance_item = option_item_sp(
