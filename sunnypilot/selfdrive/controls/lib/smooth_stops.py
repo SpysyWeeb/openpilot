@@ -44,14 +44,14 @@ DEFAULT_LEVEL = 2
 
 
 # settle-phase failsafe and smoothing
-LINGER_SPEED = 0.5  # m/s, crawling below this without standstill arms the failsafe
+LINGER_SPEED = 1.0  # m/s (~2.2 mph), crawling below this without standstill arms the failsafe
 LINGER_TIME = 1.0  # s, how long to crawl before the clamp is allowed to finish the stop
 
 # progress watchdog: while the cap is limiting braking, the car must keep slowing.
 # If speed stops decreasing, release the cap progressively until it does
 STALL_TIME = 1.0  # s, no progress for this long starts releasing the cap
 STALL_PROGRESS = 0.02  # m/s, minimum speed reduction to count as progress
-STALL_RELEASE_RATE = 0.5  # m/s^2 of additional allowed braking per second of stall
+STALL_RELEASE_RATE = 0.15  # m/s^2 of additional allowed braking per second of stall
 SETTLE_SMOOTH_SPEED = 1.5  # m/s, jerk-limit the PID output below this
 SETTLE_JERK_LIMIT = 2.5  # m/s^3
 
