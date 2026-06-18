@@ -116,24 +116,14 @@ class CruiseLayout(Widget):
       label_callback=lambda value: f"{value} m",
       inline=True)
 
-    self.lead_reaction_item = option_item_sp(
-      title=tr("Lead Reaction"),
-      param="LeadReaction",
-      min_value=10, max_value=50, value_change_step=1,
-      description=tr("How quickly sunnypilot responds to the lead vehicle braking or pulling away. " +
-                     "Higher reacts earlier and more progressively, so braking comes in sooner and " +
-                     "smoother instead of late and abrupt. 1.0x is stock."),
-      label_callback=lambda value: f"{value / 10:.1f}x",
-      inline=True)
-
-    self.launch_response_item = option_item_sp(
-      title=tr("Launch Response"),
-      param="LaunchResponse",
-      min_value=10, max_value=40, value_change_step=1,
-      description=tr("How tightly sunnypilot follows the model when accelerating from a stop. " +
-                     "Higher pulls off sooner with less lag. Only affects takeoff; highway " +
-                     "following is unchanged. 1.0x is stock."),
-      label_callback=lambda value: f"{value / 10:.1f}x",
+    self.reaction_level_item = option_item_sp(
+      title=tr("Reaction Level"),
+      param="ReactionLevel",
+      min_value=1, max_value=5, value_change_step=1,
+      description=tr("How quickly sunnypilot responds to the lead vehicle on both gas and brakes: " +
+                     "reacting to the lead braking or pulling away, and pulling off from a stop. " +
+                     "Higher is quicker and more progressive. Level 1 is stock."),
+      label_callback=lambda value: f"{value}",
       inline=True)
 
     items = [
@@ -142,8 +132,7 @@ class CruiseLayout(Widget):
       self.smooth_stops_toggle,
       self.smooth_stops_level,
       self.increased_stopped_distance_item,
-      self.lead_reaction_item,
-      self.launch_response_item,
+      self.reaction_level_item,
       self.scc_v_toggle,
       self.scc_m_toggle,
       self.custom_acc_toggle,
@@ -205,8 +194,7 @@ class CruiseLayout(Widget):
         self.dec_toggle.action_item.set_enabled(has_long)
         self.smooth_stops_toggle.action_item.set_enabled(has_long)
         self.increased_stopped_distance_item.action_item.set_enabled(has_long)
-        self.lead_reaction_item.action_item.set_enabled(has_long)
-        self.launch_response_item.action_item.set_enabled(has_long)
+        self.reaction_level_item.action_item.set_enabled(has_long)
         self.scc_v_toggle.action_item.set_enabled(True)
         self.scc_m_toggle.action_item.set_enabled(True)
       else:
@@ -218,14 +206,12 @@ class CruiseLayout(Widget):
         ui_state.params.remove("SmoothStopsLevel")
         ui_state.params.remove("IncreasedStoppedDistance")
         ui_state.params.remove("CustomPersonality")
-        ui_state.params.remove("LeadReaction")
-        ui_state.params.remove("LaunchResponse")
+        ui_state.params.remove("ReactionLevel")
         self.custom_acc_toggle.action_item.set_enabled(False)
         self.dec_toggle.action_item.set_enabled(False)
         self.smooth_stops_toggle.action_item.set_enabled(False)
         self.increased_stopped_distance_item.action_item.set_enabled(False)
-        self.lead_reaction_item.action_item.set_enabled(False)
-        self.launch_response_item.action_item.set_enabled(False)
+        self.reaction_level_item.action_item.set_enabled(False)
         self.scc_v_toggle.action_item.set_enabled(False)
         self.scc_m_toggle.action_item.set_enabled(False)
 

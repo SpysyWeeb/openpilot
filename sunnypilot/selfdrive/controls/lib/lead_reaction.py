@@ -4,19 +4,20 @@ Copyright (c) 2021-, Haibin Wen, sunnypilot, and a number of other contributors.
 This file is part of sunnypilot and is licensed under the MIT License.
 See the LICENSE.md file in the root directory for more details.
 
-Lead Reaction and Launch Response: two global longitudinal-feel knobs that
-default to stock behavior and are read independently of any other tuning.
+Reaction Level: one global longitudinal-feel knob, a whole number from 1 (stock)
+to 5 (quickest), that makes sunnypilot respond quicker on both gas and brakes.
+It drives two effects together, interpolated across the level:
 
-- Lead Reaction scales the lead's acceleration-decay time constant (aLeadTau): a
-  higher reactivity divides aLeadTau down, so the MPC projects the lead's braking
-  (or pull-away) as persisting longer and engages the response earlier and more
-  progressively instead of late and abrupt.
-- Launch Response scales the v_desired smoothing time constant used at takeoff: a
-  higher quickness divides the stock 2.0 s tau down, tightening the tracking of
-  the model's pull-off from a stop. The planner blends this back to stock above a
-  low speed so highway following is untouched.
+- Lead reaction scales the lead's acceleration-decay time constant (aLeadTau): a
+  higher level divides aLeadTau down, so the MPC projects the lead's braking (or
+  pull-away) as persisting longer and engages the response earlier and more
+  progressively instead of late and abrupt. At level 5 this is 5x stock.
+- Launch response scales the v_desired smoothing time constant used at takeoff: a
+  higher level divides the stock 2.0 s tau down, tightening the tracking of the
+  model's pull-off from a stop. At level 5 this is 4x stock. The planner blends
+  this back to stock above a low speed so highway following is untouched.
 
-Both sliders are stored as ints in 0.1x steps; 1.0x reproduces stock exactly.
+Level 1 reproduces stock behavior exactly.
 """
 import numpy as np
 
@@ -24,12 +25,12 @@ from openpilot.common.params import Params
 from openpilot.common.realtime import DT_MDL
 from openpilot.sunnypilot import PARAMS_UPDATE_PERIOD
 
-REACTION_PARAM_SCALE = 0.1
-REACTION_MIN, REACTION_MAX = 1.0, 5.0
+REACTION_MIN_LEVEL, REACTION_MAX_LEVEL = 1, 5
 
+# at the top level, lead reaction is 5x stock and launch response is 4x stock
+REACTIVITY_AT_MAX = 5.0
+LAUNCH_QUICKNESS_AT_MAX = 4.0
 STOCK_V_DESIRED_TAU = 2.0
-LAUNCH_PARAM_SCALE = 0.1
-LAUNCH_MIN, LAUNCH_MAX = 1.0, 4.0
 
 
 class LeadReactionTuning:
@@ -41,12 +42,13 @@ class LeadReactionTuning:
     self.read_params()
 
   def read_params(self) -> None:
-    reactivity = int(self.params.get("LeadReaction", return_default=True)) * REACTION_PARAM_SCALE
-    reactivity = float(np.clip(reactivity, REACTION_MIN, REACTION_MAX))
+    level = float(np.clip(int(self.params.get("ReactionLevel", return_default=True)),
+                          REACTION_MIN_LEVEL, REACTION_MAX_LEVEL))
+
+    reactivity = np.interp(level, [REACTION_MIN_LEVEL, REACTION_MAX_LEVEL], [1.0, REACTIVITY_AT_MAX])
     self.lead_reaction_factor = 1.0 / reactivity
 
-    quickness = int(self.params.get("LaunchResponse", return_default=True)) * LAUNCH_PARAM_SCALE
-    quickness = float(np.clip(quickness, LAUNCH_MIN, LAUNCH_MAX))
+    quickness = np.interp(level, [REACTION_MIN_LEVEL, REACTION_MAX_LEVEL], [1.0, LAUNCH_QUICKNESS_AT_MAX])
     self.launch_tau = STOCK_V_DESIRED_TAU / quickness
 
   def update(self) -> None:
