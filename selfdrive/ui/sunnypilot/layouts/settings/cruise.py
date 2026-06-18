@@ -87,9 +87,31 @@ class CruiseLayout(Widget):
       description=tr("Enable toggle to allow the model to determine when to use sunnypilot ACC or sunnypilot End to End Longitudinal."),
       param="DynamicExperimentalControl")
 
+    self.lead_reaction_item = option_item_sp(
+      title=tr("Lead Reaction"),
+      param="LeadReaction",
+      min_value=10, max_value=50, value_change_step=1,
+      description=tr("How quickly sunnypilot responds to the lead vehicle braking or pulling away. " +
+                     "Higher reacts earlier and more progressively, so braking comes in sooner and " +
+                     "smoother instead of late and abrupt. 1.0x is stock."),
+      label_callback=lambda value: f"{value / 10:.1f}x",
+      inline=True)
+
+    self.launch_response_item = option_item_sp(
+      title=tr("Launch Response"),
+      param="LaunchResponse",
+      min_value=10, max_value=40, value_change_step=1,
+      description=tr("How tightly sunnypilot follows the model when accelerating from a stop. " +
+                     "Higher pulls off sooner with less lag. Only affects takeoff; highway " +
+                     "following is unchanged. 1.0x is stock."),
+      label_callback=lambda value: f"{value / 10:.1f}x",
+      inline=True)
+
     items = [
       self.icbm_toggle,
       self.dec_toggle,
+      self.lead_reaction_item,
+      self.launch_response_item,
       self.scc_v_toggle,
       self.scc_m_toggle,
       self.custom_acc_toggle,
@@ -145,6 +167,8 @@ class CruiseLayout(Widget):
       if has_long or has_icbm:
         self.custom_acc_toggle.action_item.set_enabled(((has_long and not ui_state.CP.pcmCruise) or has_icbm) and ui_state.is_offroad())
         self.dec_toggle.action_item.set_enabled(has_long)
+        self.lead_reaction_item.action_item.set_enabled(has_long)
+        self.launch_response_item.action_item.set_enabled(has_long)
         self.scc_v_toggle.action_item.set_enabled(True)
         self.scc_m_toggle.action_item.set_enabled(True)
       else:
@@ -152,8 +176,12 @@ class CruiseLayout(Widget):
         ui_state.params.remove("DynamicExperimentalControl")
         ui_state.params.remove("SmartCruiseControlVision")
         ui_state.params.remove("SmartCruiseControlMap")
+        ui_state.params.remove("LeadReaction")
+        ui_state.params.remove("LaunchResponse")
         self.custom_acc_toggle.action_item.set_enabled(False)
         self.dec_toggle.action_item.set_enabled(False)
+        self.lead_reaction_item.action_item.set_enabled(False)
+        self.launch_response_item.action_item.set_enabled(False)
         self.scc_v_toggle.action_item.set_enabled(False)
         self.scc_m_toggle.action_item.set_enabled(False)
 

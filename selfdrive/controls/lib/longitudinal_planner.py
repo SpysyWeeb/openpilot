@@ -22,6 +22,10 @@ A_CRUISE_MAX_BP = [0., 10.0, 25., 40.]
 CONTROL_N_T_IDX = ModelConstants.T_IDXS[:CONTROL_N]
 ALLOW_THROTTLE_THRESHOLD = 0.4
 MIN_ALLOW_THROTTLE_SPEED = 2.5
+# Launch Response: the user's tighter v_desired tau is applied at a stop and
+# blended back to the stock 2.0 s by this speed, so only takeoff feel changes
+LAUNCH_BLEND_SPEED = 8.0  # m/s (~18 mph)
+STOCK_V_DESIRED_TAU = 2.0
 
 # Lookup table for turns
 _A_TOTAL_MAX_V = [1.7, 3.2]
@@ -119,6 +123,12 @@ class LongitudinalPlanner(LongitudinalPlannerSP):
       # Clip aEgo to cruise limits to prevent large accelerations when becoming active
       self.a_desired = np.clip(sm['carState'].aEgo, accel_clip[0], accel_clip[1])
 
+    # Launch Response: tighten the v_desired smoothing near a stop and fade back to
+    # stock by LAUNCH_BLEND_SPEED so only takeoff feel changes, not highway following
+    launch_tau = self.lead_reaction.get_launch_tau()
+    v_desired_tau = float(np.interp(v_ego, [0.0, LAUNCH_BLEND_SPEED], [launch_tau, STOCK_V_DESIRED_TAU]))
+    self.v_desired_filter.update_alpha(v_desired_tau)
+
     # Prevent divergence, smooth in current v_ego
     self.v_desired_filter.x = max(0.0, self.v_desired_filter.update(v_ego))
     _, _, _, _, throttle_prob = self.parse_model(sm['modelV2'])
@@ -138,7 +148,8 @@ class LongitudinalPlanner(LongitudinalPlannerSP):
 
     self.mpc.set_weights(prev_accel_constraint, personality=sm['selfdriveState'].personality)
     self.mpc.set_cur_state(self.v_desired_filter.x, self.a_desired)
-    self.mpc.update(sm['radarState'], v_cruise, personality=sm['selfdriveState'].personality)
+    self.mpc.update(sm['radarState'], v_cruise, personality=sm['selfdriveState'].personality,
+                    lead_reaction_factor=self.lead_reaction.get_lead_reaction_factor())
 
     self.v_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC, self.mpc.v_solution)
     self.a_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC, self.mpc.a_solution)
