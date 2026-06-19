@@ -122,6 +122,8 @@ def _process_font(font_path: Path, codepoints: tuple[int, ...]):
 
 
 def main():
+  rl.set_config_flags(rl.ConfigFlags.FLAG_WINDOW_HIDDEN)
+  rl.init_window(1, 1, "")
   base_cp, unifont_cp = _char_sets()
   fonts = sorted(FONT_DIR.glob("*.ttf")) + sorted(FONT_DIR.glob("*.otf"))
   for font in fonts:
@@ -129,6 +131,7 @@ def main():
       continue
     glyphs = unifont_cp if font.stem.lower().startswith("unifont") else base_cp
     _process_font(font, glyphs)
+  rl.close_window()
   return 0
 
 
