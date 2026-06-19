@@ -60,10 +60,11 @@ jobs:
           cd "${BUILD_DIR}"
           sed -i '/from .board.jungle import PandaJungle, PandaJungleDFU/s/^/#/' panda/__init__.py
 
-          scons -j$(nproc) cache_dir="${SCONS_CACHE_DIR}" --minimal sunnypilot/modeld_v2
+          JOBS=$(( $(nproc) / 2 > 1 ? $(nproc) / 2 : 2 ))
+          scons -j${JOBS} cache_dir="${SCONS_CACHE_DIR}" --minimal sunnypilot/modeld_v2
           scons -j2  cache_dir="${SCONS_CACHE_DIR}" --minimal sunnypilot/selfdrive/locationd
           scons -j1  cache_dir="${SCONS_CACHE_DIR}" --minimal selfdrive/locationd
-          scons -j$(nproc) cache_dir="${SCONS_CACHE_DIR}" --minimal
+          scons -j${JOBS} cache_dir="${SCONS_CACHE_DIR}" --minimal
 
           touch prebuilt
 
