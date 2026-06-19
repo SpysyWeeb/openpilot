@@ -87,15 +87,12 @@ class CruiseLayout(Widget):
       description=tr("Enable toggle to allow the model to determine when to use sunnypilot ACC or sunnypilot End to End Longitudinal."),
       param="DynamicExperimentalControl")
 
-    self.reaction_level_item = option_item_sp(
-      title=tr("Reaction Level"),
-      param="ReactionLevel",
-      min_value=1, max_value=5, value_change_step=1,
-      description=tr("How quickly sunnypilot responds to the lead vehicle on both gas and brakes: " +
-                     "reacting to the lead braking or pulling away, and pulling off from a stop. " +
-                     "Higher is quicker and more progressive. Level 1 is stock."),
-      label_callback=lambda value: f"{value}",
-      inline=True)
+    self.reaction_level_item = toggle_item_sp(
+      title=tr("Lead Reaction Tuning"),
+      param="LeadReactionTuning",
+      description=tr("Respond quicker to the lead vehicle on both gas and brakes: " +
+                     "reacting sooner to the lead braking or pulling away, and pulling off " +
+                     "from a stop more readily. Disabled is stock."))
 
     items = [
       self.icbm_toggle,
@@ -164,7 +161,7 @@ class CruiseLayout(Widget):
         ui_state.params.remove("DynamicExperimentalControl")
         ui_state.params.remove("SmartCruiseControlVision")
         ui_state.params.remove("SmartCruiseControlMap")
-        ui_state.params.remove("ReactionLevel")
+        ui_state.params.remove("LeadReactionTuning")
         self.custom_acc_toggle.action_item.set_enabled(False)
         self.dec_toggle.action_item.set_enabled(False)
         self.reaction_level_item.action_item.set_enabled(False)
