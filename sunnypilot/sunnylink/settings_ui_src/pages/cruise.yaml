@@ -71,6 +71,22 @@ sections:
     - $ref: '#/macros/longitudinal'
     enablement:
     - $ref: '#/macros/longitudinal'
+- id: lead_reaction_tuning
+  title: Lead Reaction Tuning
+  description: ''
+  enablement:
+  - $ref: '#/macros/longitudinal'
+  items:
+  - key: LeadReactionTuning
+    widget: toggle
+    title: Lead Reaction Tuning
+    description: Respond quicker to the lead vehicle on both gas and brakes, reacting
+      sooner to the lead braking or pulling away, and pulling off from a stop more
+      readily. Disabled is stock.
+    visibility:
+    - $ref: '#/macros/longitudinal'
+    enablement:
+    - $ref: '#/macros/longitudinal'
 - id: increased_stop_distance
   title: ''
   description: ''
