@@ -1,0 +1,113 @@
+name: Fork - Build Prebuilt
+
+on:
+  push:
+    branches:
+      - '*-dev'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  BUILD_DIR: /data/actions-build
+  SCONS_CACHE_DIR: /data/actions-scons-cache
+  OUTPUT_DIR: /data/actions-output
+
+jobs:
+  build:
+    runs-on: [self-hosted, Linux, ARM64]
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Compute target branch
+        id: branch
+        run: |
+          SOURCE="${{ github.ref_name }}"
+          TARGET="${SOURCE%-dev}"
+          echo "source=$SOURCE" >> $GITHUB_OUTPUT
+          echo "target=$TARGET" >> $GITHUB_OUTPUT
+          echo "Building: $SOURCE → $TARGET"
+
+      - name: Disable powersave
+        run: |
+          source /etc/profile || true
+          PYTHONPATH="$PYTHONPATH:${{ github.workspace }}" \
+            python3 "${{ github.workspace }}/scripts/manage-powersave.py" --disable || true
+
+      - name: Build
+        run: |
+          source /etc/profile || true
+          export UV_PROJECT_ENVIRONMENT="${HOME}/venv"
+          export VIRTUAL_ENV="${UV_PROJECT_ENVIRONMENT}"
+
+          sudo mkdir -p "${BUILD_DIR}"
+          sudo find "${BUILD_DIR}/" -mindepth 1 -delete
+
+          "${{ github.workspace }}/release/release_files.py" | sort | uniq | \
+            rsync -rRl --files-from=- "${{ github.workspace }}/" "${BUILD_DIR}/"
+
+          cd "${BUILD_DIR}"
+          sed -i '/from .board.jungle import PandaJungle, PandaJungleDFU/s/^/#/' panda/__init__.py
+
+          scons -j$(nproc) cache_dir="${SCONS_CACHE_DIR}" --minimal sunnypilot/modeld_v2
+          scons -j2  cache_dir="${SCONS_CACHE_DIR}" --minimal sunnypilot/selfdrive/locationd
+          scons -j1  cache_dir="${SCONS_CACHE_DIR}" --minimal selfdrive/locationd
+          scons -j$(nproc) cache_dir="${SCONS_CACHE_DIR}" --minimal
+
+          touch prebuilt
+
+      - name: Re-enable powersave
+        if: always()
+        run: |
+          source /etc/profile || true
+          PYTHONPATH="$PYTHONPATH:${{ github.workspace }}" \
+            python3 "${{ github.workspace }}/scripts/manage-powersave.py" --enable || true
+
+      - name: Publish to prebuilt branch
+        env:
+          GIT_LFS_SKIP_PUSH: "1"
+        run: |
+          TARGET="${{ steps.branch.outputs.target }}"
+
+          sudo rm -rf "${OUTPUT_DIR}"
+          mkdir -p "${OUTPUT_DIR}"
+
+          rsync -am \
+            --exclude='.sconsign.dblite' \
+            --exclude='*.a' \
+            --exclude='*.o' \
+            --exclude='*.os' \
+            --exclude='*.pyc' \
+            --exclude='moc_*' \
+            --exclude='__pycache__' \
+            --exclude='Jenkinsfile' \
+            --exclude='**/release/' \
+            --exclude='**/.github/' \
+            --exclude='**/selfdrive/ui/replay/' \
+            --exclude='**/__pycache__/' \
+            --exclude='**/.git/' \
+            --exclude='**/SConstruct' \
+            --exclude='**/SConscript' \
+            --exclude='**/.venv/' \
+            --exclude='selfdrive/modeld/models/*.onnx*' \
+            --exclude='sunnypilot/modeld*/models/*.onnx*' \
+            --exclude='third_party/*x86*' \
+            --exclude='third_party/*Darwin*' \
+            --delete-excluded \
+            "${BUILD_DIR}/" "${OUTPUT_DIR}/"
+
+          cd "${OUTPUT_DIR}"
+          git init
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git checkout -b "${TARGET}"
+          git add -A
+          git commit -m "prebuilt: ${{ github.ref_name }} @ $(date '+%Y-%m-%d') [${{ github.sha }}]"
+
+          GIT_LFS_SKIP_PUSH=1 git push --force \
+            "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" \
+            "${TARGET}"
