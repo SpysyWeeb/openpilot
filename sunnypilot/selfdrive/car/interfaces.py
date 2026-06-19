@@ -89,7 +89,6 @@ def _cleanup_unsupported_params(CP: structs.CarParams, CP_SP: structs.CarParamsS
     params.remove("SmartCruiseControlVision")
     params.remove("SmartCruiseControlMap")
     params.remove("SmoothStops")
-    params.remove("SmoothStopsLevel")
     params.remove("IncreasedStoppedDistance")
     params.remove("CustomPersonality")
     for _name in ("Aggressive", "Standard", "Relaxed"):
