@@ -682,6 +682,40 @@
           ]
         },
         {
+          "id": "lead_reaction_tuning",
+          "title": "Lead Reaction Tuning",
+          "description": "",
+          "enablement": [
+            {
+              "type": "capability",
+              "field": "has_longitudinal_control",
+              "equals": true
+            }
+          ],
+          "items": [
+            {
+              "key": "LeadReactionTuning",
+              "widget": "toggle",
+              "title": "Lead Reaction Tuning",
+              "description": "Respond quicker to the lead vehicle on both gas and brakes, reacting sooner to the lead braking or pulling away, and pulling off from a stop more readily. Disabled is stock.",
+              "visibility": [
+                {
+                  "type": "capability",
+                  "field": "has_longitudinal_control",
+                  "equals": true
+                }
+              ],
+              "enablement": [
+                {
+                  "type": "capability",
+                  "field": "has_longitudinal_control",
+                  "equals": true
+                }
+              ]
+            }
+          ]
+        },
+        {
           "id": "increased_stop_distance",
           "title": "",
           "description": "",
