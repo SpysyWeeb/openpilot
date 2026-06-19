@@ -39,6 +39,9 @@ jobs:
             python3 "${{ github.workspace }}/scripts/manage-powersave.py" --disable || true
 
       - name: Build
+        env:
+          WAYLAND_DISPLAY: wayland-0
+          XDG_RUNTIME_DIR: /var/tmp/weston
         run: |
           source /etc/profile || true
           export UV_PROJECT_ENVIRONMENT="${HOME}/venv"
