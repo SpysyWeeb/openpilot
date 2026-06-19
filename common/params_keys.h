@@ -227,7 +227,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
 
     {"DynamicExperimentalControl", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"SmoothStops", {PERSISTENT | BACKUP, BOOL, "0"}},
-    {"SmoothStopsLevel", {PERSISTENT | BACKUP, INT, "2"}},
     {"IncreasedStoppedDistance", {PERSISTENT | BACKUP, INT, "0"}},
     {"CustomPersonality", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"CustomPersonalityTarget", {PERSISTENT | BACKUP, INT, "1"}},

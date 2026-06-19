@@ -66,33 +66,11 @@ sections:
   - key: SmoothStops
     widget: toggle
     title: Smooth Stops
-    description: Finish every stop with a smooth landing, no matter how firmly it began. Higher smoothness lands more gently
-      and adds a little stopping distance. Full braking remains available when a lead vehicle is close.
-
+    description: Finish every stop with a smooth landing, no matter how firmly it began. Full braking remains available when a lead vehicle is close.
     visibility:
     - $ref: '#/macros/longitudinal'
     enablement:
     - $ref: '#/macros/longitudinal'
-  sub_panels:
-  - id: smooth_stops_settings
-    label: Smooth Stops Settings
-    trigger_key: SmoothStops
-    trigger_condition:
-      type: param
-      key: SmoothStops
-      equals: true
-    items:
-    - key: SmoothStopsLevel
-      widget: option
-      title: Stop Smoothness
-      description: '1: Soft, 2: Softer, 3: Softest'
-      min: 1
-      max: 3
-      step: 1
-      enablement:
-      - type: param
-        key: SmoothStops
-        equals: true
 - id: increased_stop_distance
   title: ''
   description: ''
