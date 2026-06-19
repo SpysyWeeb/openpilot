@@ -33,13 +33,8 @@ STOP_INTENT_SPEED = 0.5  # m/s, plan must reach below this to count as a stop
 MIN_LEAD_DISTANCE = 5.0  # m, full braking authority when a lead is closer than this
 LEAD_STOP_MARGIN = 4.0  # m, never block the braking required to stop this far behind the lead
 
-# level -> (k [1/s], c [m/s^2])
-SMOOTHNESS_LEVELS = {
-  1: (1.10, 0.40),
-  2: (0.70, 0.30),
-  3: (0.45, 0.20),
-}
-DEFAULT_LEVEL = 2
+SMOOTHNESS_K = 0.70  # [1/s], landing time constant (Softer)
+SMOOTHNESS_C = 0.30  # [m/s^2], residual decel at standstill (Softer)
 
 
 
@@ -62,10 +57,8 @@ SETTLE_SMOOTH_SPEED = 1.5  # m/s, jerk-limit the PID output below this
 SETTLE_JERK_LIMIT = 2.5  # m/s^3
 
 
-def read_smooth_stops_params(params: Params) -> tuple[bool, int]:
-  enabled = params.get_bool("SmoothStops")
-  level = int(params.get("SmoothStopsLevel", return_default=True))
-  return enabled, min(max(level, min(SMOOTHNESS_LEVELS)), max(SMOOTHNESS_LEVELS))
+def read_smooth_stops_params(params: Params) -> bool:
+  return params.get_bool("SmoothStops")
 
 
 class SmoothStops:
@@ -73,7 +66,6 @@ class SmoothStops:
     self.params = Params()
     self.frame = 0
     self.enabled = False
-    self.level = DEFAULT_LEVEL
     self.active = False
     self._v_min = float("inf")
     self._stall_frames = 0
@@ -84,7 +76,7 @@ class SmoothStops:
     self._stall_frames = 0
 
   def read_params(self) -> None:
-    self.enabled, self.level = read_smooth_stops_params(self.params)
+    self.enabled = read_smooth_stops_params(self.params)
 
   def update(self) -> None:
     if self.frame % int(PARAMS_UPDATE_PERIOD / DT_MDL) == 0:
@@ -100,8 +92,7 @@ class SmoothStops:
     if plan_min_v > STOP_INTENT_SPEED:
       self._reset_watchdog()
       return a_target
-    k, c = SMOOTHNESS_LEVELS[self.level]
-    brake_floor = -(k * v_ego + c)
+    brake_floor = -(SMOOTHNESS_K * v_ego + SMOOTHNESS_C)
 
     if lead_one.status:
       if lead_one.dRel < MIN_LEAD_DISTANCE:
@@ -164,13 +155,12 @@ class SmoothStopsLongControl:
     self.params = Params()
     self.frame = 0
     self.enabled = False
-    self.level = DEFAULT_LEVEL
     self.linger_frames = 0
     self.last_pid_output = 0.0
 
   def update(self) -> None:
     if self.frame % int(PARAMS_UPDATE_PERIOD / DT_CTRL) == 0:
-      self.enabled, self.level = read_smooth_stops_params(self.params)
+      self.enabled = read_smooth_stops_params(self.params)
     self.frame += 1
 
   def defer_stopping(self, should_stop: bool, standstill: bool, v_ego: float) -> bool:

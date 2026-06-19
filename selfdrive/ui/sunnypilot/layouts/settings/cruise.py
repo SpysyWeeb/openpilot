@@ -90,23 +90,13 @@ class CruiseLayout(Widget):
     self.smooth_stops_toggle = toggle_item_sp(
       title=tr("Smooth Stops"),
       description=tr("Finish every stop with a smooth landing, no matter how firmly it began. " +
-                     "Higher smoothness lands more gently and adds a little stopping distance. " +
                      "Full braking remains available when a lead vehicle is close."),
-      param="SmoothStops",
-      callback=self._on_smooth_stops_toggle)
-
-    self.smooth_stops_level = option_item_sp(
-      title=tr("Stop Smoothness"),
-      param="SmoothStopsLevel",
-      min_value=1, max_value=3, value_change_step=1,
-      label_callback=lambda value: [tr("Soft"), tr("Softer"), tr("Softest")][value - 1],
-      inline=True)
+      param="SmoothStops")
 
     items = [
       self.icbm_toggle,
       self.dec_toggle,
       self.smooth_stops_toggle,
-      self.smooth_stops_level,
       self.scc_v_toggle,
       self.scc_m_toggle,
       self.custom_acc_toggle,
@@ -171,7 +161,6 @@ class CruiseLayout(Widget):
         ui_state.params.remove("SmartCruiseControlVision")
         ui_state.params.remove("SmartCruiseControlMap")
         ui_state.params.remove("SmoothStops")
-        ui_state.params.remove("SmoothStopsLevel")
         self.custom_acc_toggle.action_item.set_enabled(False)
         self.dec_toggle.action_item.set_enabled(False)
         self.smooth_stops_toggle.action_item.set_enabled(False)
@@ -206,14 +195,9 @@ class CruiseLayout(Widget):
         self.custom_acc_toggle.show_description(True)
 
     self._on_custom_acc_toggle(self.custom_acc_toggle.action_item.get_state())
-    self._on_smooth_stops_toggle(self.smooth_stops_toggle.action_item.get_state())
 
   def _on_custom_acc_toggle(self, state):
     self.custom_acc_short_increment.set_visible(state)
     self.custom_acc_long_increment.set_visible(state)
     self.custom_acc_short_increment.action_item.set_enabled(self.custom_acc_toggle.action_item.enabled)
     self.custom_acc_long_increment.action_item.set_enabled(self.custom_acc_toggle.action_item.enabled)
-
-  def _on_smooth_stops_toggle(self, state):
-    self.smooth_stops_level.set_visible(state)
-    self.smooth_stops_level.action_item.set_enabled(self.smooth_stops_toggle.action_item.enabled)
