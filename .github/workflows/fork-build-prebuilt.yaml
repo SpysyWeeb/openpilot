@@ -51,6 +51,15 @@ jobs:
           "${{ github.workspace }}/release/release_files.py" | sort | uniq | \
             rsync -rRl --files-from=- "${{ github.workspace }}/" "${BUILD_DIR}/"
 
+          # Seed pre-built font files from the running install so raylib doesn't
+          # need a display context to regenerate them during the CI build.
+          FONT_SRC="/data/openpilot/selfdrive/assets/fonts"
+          FONT_DST="${BUILD_DIR}/selfdrive/assets/fonts"
+          if ls "${FONT_SRC}"/*.fnt 2>/dev/null | grep -q .; then
+            mkdir -p "${FONT_DST}"
+            cp "${FONT_SRC}"/*.fnt "${FONT_DST}/"
+          fi
+
           cd "${BUILD_DIR}"
           sed -i '/from .board.jungle import PandaJungle, PandaJungleDFU/s/^/#/' panda/__init__.py
 
