@@ -240,7 +240,7 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"CustomPersonalityRelaxedAccel", {PERSISTENT | BACKUP, INT, "16"}},
     {"CustomPersonalityRelaxedJerkMultiplier", {PERSISTENT | BACKUP, INT, "10"}},
     {"CustomPersonalityRelaxedFollow", {PERSISTENT | BACKUP, INT, "35"}},
-    {"ReactionLevel", {PERSISTENT | BACKUP, INT, "1"}},
+    {"LeadReactionTuning", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"BlindSpot", {PERSISTENT | BACKUP, BOOL, "0"}},
 
     // sunnypilot model params
