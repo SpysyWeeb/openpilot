@@ -3,6 +3,7 @@ name: Fork - Build Prebuilt
 on:
   push:
     branches:
+      - master
       - '*-dev'
   workflow_dispatch:
 
@@ -30,7 +31,7 @@ jobs:
         id: branch
         run: |
           SOURCE="${{ github.ref_name }}"
-          TARGET="${SOURCE%-dev}"
+          TARGET="${SOURCE%-dev}-prebuilt"
           echo "source=$SOURCE" >> $GITHUB_OUTPUT
           echo "target=$TARGET" >> $GITHUB_OUTPUT
           echo "Building: $SOURCE → $TARGET"
