@@ -46,6 +46,7 @@ jobs:
 
           sudo mkdir -p "${BUILD_DIR}"
           sudo find "${BUILD_DIR}/" -mindepth 1 -delete
+          sudo chown "$(id -u):$(id -g)" "${BUILD_DIR}"
 
           "${{ github.workspace }}/release/release_files.py" | sort | uniq | \
             rsync -rRl --files-from=- "${{ github.workspace }}/" "${BUILD_DIR}/"
