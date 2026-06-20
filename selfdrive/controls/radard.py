@@ -10,7 +10,7 @@ from openpilot.common.filter_simple import FirstOrderFilter
 from openpilot.common.params import Params
 from openpilot.common.realtime import DT_MDL, Priority, config_realtime_process
 from openpilot.common.swaglog import cloudlog
-from openpilot.common.simple_kalman import KF1D
+from openpilot.common.simple_kalman import KF1D, get_kalman_gain
 
 from opendbc.car import structs
 from opendbc.car.hyundai.values import HyundaiFlags
@@ -19,6 +19,11 @@ from opendbc.sunnypilot.car.hyundai.values import HyundaiFlagsSP
 
 # Default lead acceleration decay set to 50% at 1s
 _LEAD_ACCEL_TAU = 1.5
+
+# Lead Reaction Tuning: lower measurement-noise R for the lead Kalman so the derived
+# acceleration (aLeadK) tracks real lead braking sooner. ~10 gives ~2x the stock accel
+# gain (~0.25s faster to track, ~1.7x noisier). Stock behavior is unchanged when off.
+FAST_LEAD_ACCEL_R = 10.0
 
 # radar tracks
 SPEED, ACCEL = 0, 1     # Kalman filter states enum
@@ -31,7 +36,7 @@ RADAR_TO_CAMERA = 1.52  # RADAR is ~ 1.5m ahead from center of mesh frame
 
 
 class KalmanParams:
-  def __init__(self, dt: float):
+  def __init__(self, dt: float, fast: bool = False):
     # Lead Kalman Filter params, calculating K from A, C, Q, R requires the control library.
     # hardcoding a lookup table to compute K for values of radar_ts between 0.01s and 0.2s
     assert dt > .01 and dt < .2, "Radar time step must be between .01s and 0.2s"
@@ -40,6 +45,14 @@ class KalmanParams:
     #Q = np.matrix([[10., 0.0], [0.0, 100.]])
     #R = 1e3
     #K = np.matrix([[ 0.05705578], [ 0.03073241]])
+    if fast:
+      # Lead Reaction Tuning: solve the steady-state gain with a lower R so aLeadK
+      # tracks the lead's real deceleration sooner (the stock smoothing lags ~0.7-1s).
+      # A valid Kalman gain by construction, so the filter stays stable.
+      Q = np.array([[10.0, 0.0], [0.0, 100.0]])
+      K = get_kalman_gain(dt, np.array(self.A), np.array([self.C]), Q, FAST_LEAD_ACCEL_R)
+      self.K = [[float(K[0, 0])], [float(K[1, 0])]]
+      return
     dts = [i * 0.01 for i in range(1, 21)]
     K0 = [0.12287673, 0.14556536, 0.16522756, 0.18281627, 0.1988689,  0.21372394,
           0.22761098, 0.24069424, 0.253096,   0.26491023, 0.27621103, 0.28705801,
@@ -204,8 +217,14 @@ class RadarD:
 
     self.current_time = 0.0
 
+    # Lead Reaction Tuning: radard is its own process, so it reads the toggle directly
+    # and builds the lead Kalman with a faster (or stock) acceleration gain.
+    self.params = Params()
+    self.frame = 0
+    self.lead_reaction = self.params.get_bool("LeadReactionTuning")
+
     self.tracks: dict[int, Track] = {}
-    self.kalman_params = KalmanParams(DT_MDL)
+    self.kalman_params = KalmanParams(DT_MDL, fast=self.lead_reaction)
     self.lead_prob_filters = [FirstOrderFilter(0.0, 0.2, DT_MDL) for _ in range(2)]
 
     self.v_ego = 0.0
@@ -218,6 +237,16 @@ class RadarD:
     self.ready = False
 
   def update(self, sm: messaging.SubMaster, rr: car.RadarData):
+    # Lead Reaction Tuning: re-check the toggle ~1Hz; rebuild the Kalman and drop tracks
+    # so the new gain takes effect when it changes (stock when off).
+    if self.frame % int(1. / DT_MDL) == 0:
+      enabled = self.params.get_bool("LeadReactionTuning")
+      if enabled != self.lead_reaction:
+        self.lead_reaction = enabled
+        self.kalman_params = KalmanParams(DT_MDL, fast=enabled)
+        self.tracks = {}
+    self.frame += 1
+
     self.ready = sm.seen['modelV2']
     self.current_time = 1e-9*max(sm.logMonoTime.values())
 
