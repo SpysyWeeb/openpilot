@@ -134,7 +134,12 @@ class Controls(ControlsExt):
 
     # accel PID loop
     pid_accel_limits = self.CI.get_pid_accel_limits(self.CP, self.CP_SP, CS.vEgo, CS.vCruise * CV.KPH_TO_MS)
-    actuators.accel = float(self.LoC.update(CC.longActive, CS, long_plan.aTarget, long_plan.shouldStop, pid_accel_limits))
+    radar_lead = self.sm['radarState'].leadOne
+    # all_checks (alive + freq + valid), not just valid: valid only updates when a message
+    # arrives, so a dead radard would leave the last lead frozen-but-"valid" forever
+    has_lead = bool(radar_lead.status) and self.sm.all_checks(['radarState'])
+    actuators.accel = float(self.LoC.update(CC.longActive, CS, long_plan.aTarget, long_plan.shouldStop, pid_accel_limits,
+                                            radar_lead.dRel, has_lead, max(float(radar_lead.vLeadK), 0.0)))
 
     # Steering PID loop and lateral MPC
     # Reset desired curvature to current to avoid violating the limits on engage
